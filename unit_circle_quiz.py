@@ -93,21 +93,7 @@ def generate_choices(correct, q_type):
         choices.add(fake)
     return random.sample(list(choices), 4)
 
-def handle_answer():
-    if st.session_state.get("just_reran"):
-        return
 
-    key = f"q_{st.session_state.index}"
-    selected = st.session_state.get(key)
-    _, correct, _ = st.session_state.get("current_question", ("", "", ""))
-
-    if selected is not None:
-        st.session_state.attempted += 1
-        if selected == correct:
-            st.session_state.score += 1
-        st.session_state.index += 1
-        st.session_state.just_reran = True
-        st.experimental_rerun()
 
 # --- Streamlit UI ---
 if "just_reran" not in st.session_state:
@@ -167,18 +153,21 @@ elif "start_time" in st.session_state:
         choices = generate_choices(correct_answer, q_type)
         st.markdown(f"<h3>Q{st.session_state.index + 1}: {question}</h3>", unsafe_allow_html=True)
 
-        st.radio(
+        selected = st.radio(
             "Choose your answer:",
             options=choices,
             index=None,
-            key=f"q_{st.session_state.index}",
-            on_change=handle_answer
+            key=f"q_{st.session_state.index}"
         )
 
+        if selected is not None:
+            st.session_state.attempted += 1
+            if selected == correct_answer:
+                st.session_state.score += 1
+            st.session_state.index += 1
+            st.experimental_rerun()
 
 
-
-    
 
 
     
