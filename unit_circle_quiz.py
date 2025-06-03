@@ -163,5 +163,5 @@ elif "start_time" in st.session_state:
             if st.session_state.index >= len(st.session_state.questions):
                 st.session_state.questions += [generate_question() for _ in range(10)]
 
-            st.experimental_rerun()
+            st.session_state.trigger_rerun = True
             st.stop()
