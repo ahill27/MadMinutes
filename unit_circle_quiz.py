@@ -90,6 +90,10 @@ def generate_choices(correct, q_type):
     return random.sample(list(choices), 4)
 
 # --- Streamlit UI ---
+# Defer rerun if needed
+if st.session_state.get("trigger_rerun"):
+    st.session_state.trigger_rerun = False
+    st.experimental_rerun()
 st.set_page_config(page_title="Unit Circle Mad Minute", layout="centered")
 st.title("⏱️ 1-Minute Unit Circle Challenge")
 
@@ -148,10 +152,12 @@ elif "start_time" in st.session_state:
 
         choice_key = f"choice_{st.session_state.index}"
 
-        if choice_key not in st.session_state:
-            selected = st.radio("Choose your answer:", choices, index=None, key=choice_key)
-        else:
-            selected = st.session_state[choice_key]
+        # Clear old selection if showing a new question
+        if st.session_state.get("answered") != st.session_state.index:
+            if choice_key in st.session_state:
+                del st.session_state[choice_key]
+
+        selected = st.radio("Choose your answer:", choices, index=None, key=choice_key)
 
         if selected and st.session_state.get("answered") != st.session_state.index:
             if selected == correct_answer:
