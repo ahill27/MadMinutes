@@ -145,11 +145,13 @@ elif "start_time" in st.session_state:
             "Choose your answer:",
             choices,
             index=None,
-            key=f"q_{st.session_state.index}",
-            on_change=lambda: st.session_state.update({
-                'attempted': st.session_state.attempted + 1,
-                'score': st.session_state.score + 1 if st.session_state[f"q_{st.session_state.index}"] == correct_answer else st.session_state.score,
-                'index': st.session_state.index + 1,
-                'trigger_rerun': True
-            })
+            key=f"q_{st.session_state.index}"
         )
+
+        if selected is not None:
+            if st.button("Submit Answer"):
+                st.session_state.attempted += 1
+                if selected == correct_answer:
+                    st.session_state.score += 1
+                st.session_state.index += 1
+                st.experimental_rerun()
