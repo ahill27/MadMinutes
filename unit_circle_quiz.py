@@ -159,4 +159,3 @@ elif "start_time" in st.session_state:
                 st.session_state.score += 1
             st.session_state.index += 1
             st.experimental_rerun()
-
