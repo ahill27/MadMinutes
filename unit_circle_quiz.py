@@ -8,12 +8,16 @@ import pandas as pd
 
 # --- Connect to Google Sheets ---
 def connect_sheet():
-    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-    creds_dict = st.secrets["gcp_service_account"]
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-    client = gspread.authorize(creds)
-    sheet = client.open("Unit Circle Results").sheet1
-    return sheet
+    try:
+        scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+        creds_dict = st.secrets["gcp_service_account"]
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+        client = gspread.authorize(creds)
+        sheet = client.open("Unit Circle Results").sheet1
+        return sheet
+    except Exception as e:
+        st.error(f"Google Sheets connection failed: {e}")
+        return None
 
 def get_last_accuracy(sheet, name):
     records = sheet.get_all_records()
@@ -93,7 +97,6 @@ def generate_choices(correct, q_type):
 st.set_page_config(page_title="Unit Circle Mad Minute", layout="centered")
 st.title("⏱️ 1-Minute Unit Circle Challenge")
 
-# Rerun handler
 if st.session_state.get("trigger_rerun"):
     st.session_state.trigger_rerun = False
     st.experimental_rerun()
@@ -112,6 +115,7 @@ if st.session_state.name and "start_time" not in st.session_state:
         st.session_state.attempted = 0
         st.session_state.questions = [generate_question() for _ in range(30)]
         st.session_state.answered = -1
+        st.session_state.selected = None
 
 elif "start_time" in st.session_state:
     elapsed = time.time() - st.session_state.start_time
@@ -124,12 +128,13 @@ elif "start_time" in st.session_state:
         accuracy = round(score / attempted * 100, 2) if attempted else 0
 
         sheet = connect_sheet()
-        prev_accuracy = get_last_accuracy(sheet, name)
-        improvement = round(((accuracy - prev_accuracy) / prev_accuracy) * 100, 2) if prev_accuracy else 0.0
-        append_result(sheet, name, score, attempted, accuracy, improvement)
+        if sheet:
+            prev_accuracy = get_last_accuracy(sheet, name)
+            improvement = round(((accuracy - prev_accuracy) / prev_accuracy) * 100, 2) if prev_accuracy else 0.0
+            append_result(sheet, name, score, attempted, accuracy, improvement)
 
-        st.success(f"⏰ Time's up! {name}, you scored {score}/{attempted} — Accuracy: {accuracy}%")
-        st.info(f"Change from last attempt: {improvement}%")
+            st.success(f"⏰ Time's up! {name}, you scored {score}/{attempted} — Accuracy: {accuracy}%")
+            st.info(f"Change from last attempt: {improvement}%")
 
         if st.button("Restart"):
             st.session_state.clear()
@@ -141,8 +146,7 @@ elif "start_time" in st.session_state:
         choices = generate_choices(correct_answer, q_type)
         st.markdown(f"<h3>Q{st.session_state.index + 1}: {question}</h3>", unsafe_allow_html=True)
 
-        choice_key = "selected"
-        selected = st.radio("Choose your answer:", choices, index=None, key=choice_key)
+        selected = st.radio("Choose your answer:", choices, index=None, key="selected")
 
         if selected:
             st.session_state.attempted += 1
@@ -153,5 +157,6 @@ elif "start_time" in st.session_state:
             if st.session_state.index >= len(st.session_state.questions):
                 st.session_state.questions += [generate_question() for _ in range(10)]
 
+            st.session_state.selected = None
             st.session_state.trigger_rerun = True
             st.stop()
