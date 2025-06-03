@@ -146,16 +146,21 @@ elif "start_time" in st.session_state:
         choices = generate_choices(correct_answer, q_type)
         st.markdown(f"<h3>Q{st.session_state.index + 1}: {question}</h3>", unsafe_allow_html=True)
 
-        selected = st.radio(
-            "Choose your answer:",
-            choices,
-            index=None,
-            key=f"q_{st.session_state.index}"
-        )
+def handle_answer():
+  key = f"q_{st.session_state.index}"
+  selected = st.session_state.get(key)
+  if selected is not None:
+      st.session_state.attempted += 1
+      if selected == correct_answer:
+          st.session_state.score += 1
+      st.session_state.index += 1
+      st.experimental_rerun()
 
-        if selected:
-            st.session_state.attempted += 1
-            if selected == correct_answer:
-                st.session_state.score += 1
-            st.session_state.index += 1
-            st.experimental_rerun()
+st.radio(
+    "Choose your answer:",
+    choices,
+    index=None,
+    key=f"q_{st.session_state.index}",
+    on_change=handle_answer
+)
+    
