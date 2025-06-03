@@ -1,4 +1,4 @@
-import streamlit as st
+ import streamlit as st
 import random
 import time
 import gspread
@@ -93,6 +93,17 @@ def generate_choices(correct, q_type):
         choices.add(fake)
     return random.sample(list(choices), 4)
 
+def handle_answer():
+    key = f"q_{st.session_state.index}"
+    selected = st.session_state.get(key)
+    _, correct, _ = st.session_state.get("current_question", ("", "", ""))
+    if selected is not None:
+        st.session_state.attempted += 1
+        if selected == correct:
+            st.session_state.score += 1
+        st.session_state.index += 1
+        st.experimental_rerun()
+
 # --- Streamlit UI ---
 st.set_page_config(page_title="Unit Circle Mad Minute", layout="centered")
 st.title("⏱️ 1-Minute Unit Circle Challenge")
@@ -142,8 +153,9 @@ elif "start_time" in st.session_state:
     else:
         st.markdown(f"<h2>🕒 Time left: {remaining} seconds</h2>", unsafe_allow_html=True)
 
-        question, correct_answer, q_type = st.session_state.questions[st.session_state.index]
-        st.session_state.correct_answer = correct_answer
+        question_data = st.session_state.questions[st.session_state.index]
+        st.session_state.current_question = question_data
+        question, correct_answer, q_type = question_data
         choices = generate_choices(correct_answer, q_type)
         st.markdown(f"<h3>Q{st.session_state.index + 1}: {question}</h3>", unsafe_allow_html=True)
 
@@ -155,14 +167,7 @@ elif "start_time" in st.session_state:
             on_change=handle_answer
         )
 
-def handle_answer():
-    key = f"q_{st.session_state.index}"
-    selected = st.session_state.get(key)
-    correct = st.session_state.get("correct_answer")
-    if selected is not None:
-        st.session_state.attempted += 1
-        if selected == correct:
-            st.session_state.score += 1
-        st.session_state.index += 1
-        st.experimental_rerun()
 
+
+
+    
