@@ -79,7 +79,7 @@ def generate_choices(correct, q_type):
         if q_type == "coord":
             fake = f"({random.choice(['1/2', '0', '√2/2', '√3/2', '-1/2'])}, {random.choice(['1/2', '0', '√2/2', '√3/2', '-1'])})"
         elif q_type == "convert_deg":
-            fake = random.choice(["π/4", "π/2", "π", "3π/2", "2π", "7π/6", "5π/3"])
+            fake = random.choice(["\u03c0/4", "\u03c0/2", "\u03c0", "3\u03c0/2", "2\u03c0", "7\u03c0/6", "5\u03c0/3"])
         elif q_type == "convert_rad":
             fake = str(random.choice([0, 30, 45, 60, 90, 120, 135, 150, 180, 270, 300, 360]))
         elif "find_angle" in q_type:
@@ -106,6 +106,7 @@ if st.session_state.name and "start_time" not in st.session_state:
         st.session_state.index = 0
         st.session_state.attempted = 0
         st.session_state.questions = [generate_question() for _ in range(30)]
+        st.session_state.answered = -1
 
 elif "start_time" in st.session_state:
     elapsed = time.time() - st.session_state.start_time
@@ -146,15 +147,18 @@ elif "start_time" in st.session_state:
         st.markdown(f"<h3>Q{st.session_state.index + 1}: {question}</h3>", unsafe_allow_html=True)
 
         choice_key = f"choice_{st.session_state.index}"
-        selected = st.radio("Choose your answer:", choices, key=choice_key, index=None)
 
-        if selected:
+        if choice_key not in st.session_state:
+            selected = st.radio("Choose your answer:", choices, index=None, key=choice_key)
+        else:
+            selected = st.session_state[choice_key]
+
+        if selected and st.session_state.get("answered") != st.session_state.index:
             if selected == correct_answer:
                 st.session_state.score += 1
-            st.session_state.index += 1
             st.session_state.attempted += 1
-
-            st.session_state.pop(choice_key, None)
+            st.session_state.index += 1
+            st.session_state.answered = st.session_state.index
 
             if st.session_state.index >= len(st.session_state.questions):
                 st.session_state.questions += [generate_question() for _ in range(10)]
