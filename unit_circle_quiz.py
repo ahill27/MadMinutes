@@ -1,12 +1,38 @@
 import streamlit as st
 import random
 import time
-import csv
-import pandas as pd
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
-import os
+import pandas as pd
 
-# --- Question bank ---
+# ---------------- Google Sheets Setup ----------------
+SHEET_NAME = 'Unit Circle Results'  # Make sure this matches your actual Google Sheet name
+
+def connect_sheet():
+    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+    creds = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
+    client = gspread.authorize(creds)
+    sheet = client.open(SHEET_NAME).sheet1
+    return sheet
+
+def get_last_accuracy(sheet, name):
+    records = sheet.get_all_records()
+    df = pd.DataFrame(records)
+    if df.empty:
+        return None
+    user_rows = df[df['Name'] == name]
+    if user_rows.empty:
+        return None
+    return float(user_rows.iloc[-1]['Accuracy'])
+
+def append_result(sheet, name, score, attempted, accuracy, improvement):
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    row = [name, score, attempted, accuracy, improvement, now]
+    sheet.append_row(row)
+
+# ---------------- Quiz Logic ----------------
+
 angles = [
     (0, "0", "1", "0"),
     (30, "π/6", "√3/2", "1/2"),
@@ -38,59 +64,54 @@ def generate_question():
     else:
         return f"What are the coordinates at {angle_rad}?", f"({angle[2]}, {angle[3]})"
 
-# --- App UI ---
+def generate_choices(correct, q_type):
+    choices = {correct}
+    while len(choices) < 4:
+        if q_type == "coord":
+            fake = f"({random.choice(['1/2', '0', '√2/2', '√3/2', '-1/2'])}, {random.choice(['1/2', '0', '√2/2', '√3/2', '-1'])})"
+        else:
+            fake = random.choice(["1", "0", "-1", "1/2", "-1/2", "√2/2", "-√2/2", "√3/2", "-√3/2"])
+        choices.add(fake)
+    return random.sample(list(choices), 4)
+
+# ---------------- Streamlit UI ----------------
+
 st.set_page_config(page_title="Unit Circle Mad Minute", layout="centered")
 st.title("⏱️ 1-Minute Unit Circle Challenge")
 
-# Name input
+# Input student name
 if "name" not in st.session_state:
     st.session_state.name = ""
 
 if st.session_state.name == "":
     st.session_state.name = st.text_input("Enter your name to begin:")
 
-# Quiz logic
+# Start quiz logic
 if st.session_state.name and "start_time" not in st.session_state:
     if st.button("Start Quiz"):
         st.session_state.start_time = time.time()
         st.session_state.score = 0
         st.session_state.index = 0
-        st.session_state.questions = [generate_question() for _ in range(20)]
         st.session_state.attempted = 0
+        st.session_state.questions = [generate_question() for _ in range(20)]
 
 elif "start_time" in st.session_state:
     elapsed = time.time() - st.session_state.start_time
     remaining = int(60 - elapsed)
-    
+
     if remaining <= 0:
         name = st.session_state.name
         score = st.session_state.score
         attempted = st.session_state.attempted
         accuracy = round(score / attempted * 100, 2) if attempted else 0
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # Load previous results if they exist
-        prev_accuracy = None
-        if os.path.exists("results.csv"):
-            df = pd.read_csv("results.csv")
-            prev_rows = df[df['Name'] == name]
-            if not prev_rows.empty:
-                prev_accuracy = prev_rows.iloc[-1]['Accuracy']
+        sheet = connect_sheet()
+        prev_accuracy = get_last_accuracy(sheet, name)
 
-        # Calculate improvement
-        if prev_accuracy is not None and prev_accuracy != 0:
-            improvement = round(((accuracy - prev_accuracy) / prev_accuracy) * 100, 2)
-        else:
-            improvement = 0.0
+        improvement = round(((accuracy - prev_accuracy) / prev_accuracy) * 100, 2) if prev_accuracy else 0.0
+        append_result(sheet, name, score, attempted, accuracy, improvement)
 
-        # Save result
-        with open("results.csv", "a", newline="") as f:
-            writer = csv.writer(f)
-            if os.stat("results.csv").st_size == 0:
-                writer.writerow(["Name", "Score", "Attempted", "Accuracy", "Improvement %", "Timestamp"])
-            writer.writerow([name, score, attempted, accuracy, improvement, now])
-
-        st.success(f"⏰ Time's up! {name}, you scored {score} out of {attempted} — Accuracy: {accuracy}%")
+        st.success(f"⏰ Time's up! {name}, you scored {score}/{attempted} — Accuracy: {accuracy}%")
         st.info(f"Change from last attempt: {improvement}%")
 
         if st.button("Restart"):
@@ -98,14 +119,19 @@ elif "start_time" in st.session_state:
 
     else:
         st.markdown(f"### 🕒 Time left: {remaining} seconds")
-        q, a = st.session_state.questions[st.session_state.index]
-        st.write(f"**Q{st.session_state.index + 1}:** {q}")
-        user_answer = st.text_input("Your answer:", key=f"q{st.session_state.index}")
+
+        question, correct_answer = st.session_state.questions[st.session_state.index]
+        q_type = "coord" if "coordinates" in question else "sin" if "sin" in question else "cos"
+        choices = generate_choices(correct_answer, q_type)
+
+        st.write(f"**Q{st.session_state.index + 1}:** {question}")
+        selected = st.radio("Choose your answer:", choices, key=f"q{st.session_state.index}")
 
         if st.button("Submit Answer"):
-            if user_answer.strip() == a:
+            if selected == correct_answer:
                 st.session_state.score += 1
             st.session_state.index += 1
             st.session_state.attempted += 1
             if st.session_state.index >= len(st.session_state.questions):
                 st.session_state.questions += [generate_question() for _ in range(10)]
+
