@@ -58,19 +58,19 @@ def generate_question():
     q_type = random.choice(["sin", "cos", "coord", "convert_deg", "convert_rad", "find_angle_sin", "find_angle_cos"])
 
     if q_type == "sin":
-        return f"What is sin({angle_rad})?", sin_val
+        return f"What is sin({angle_rad})?", sin_val, q_type
     elif q_type == "cos":
-        return f"What is cos({angle_rad})?", cos_val
+        return f"What is cos({angle_rad})?", cos_val, q_type
     elif q_type == "coord":
-        return f"What are the coordinates at {angle_rad}?", f"({cos_val}, {sin_val})"
+        return f"What are the coordinates at {angle_rad}?", f"({cos_val}, {sin_val})", q_type
     elif q_type == "convert_deg":
-        return f"Convert {angle_deg}° to radians.", angle_rad
+        return f"Convert {angle_deg}° to radians.", angle_rad, q_type
     elif q_type == "convert_rad":
-        return f"Convert {angle_rad} to degrees.", str(angle_deg)
+        return f"Convert {angle_rad} to degrees.", str(angle_deg), q_type
     elif q_type == "find_angle_sin":
-        return f"At which angle is sin(θ) = {sin_val}?", angle_rad
+        return f"At which angle is sin(θ) = {sin_val}?", angle_rad, q_type
     elif q_type == "find_angle_cos":
-        return f"At which angle is cos(θ) = {cos_val}?", angle_rad
+        return f"At which angle is cos(θ) = {cos_val}?", angle_rad, q_type
 
 # --- Generate multiple choices ---
 def generate_choices(correct, q_type):
@@ -79,7 +79,7 @@ def generate_choices(correct, q_type):
         if q_type == "coord":
             fake = f"({random.choice(['1/2', '0', '√2/2', '√3/2', '-1/2'])}, {random.choice(['1/2', '0', '√2/2', '√3/2', '-1'])})"
         elif q_type == "convert_deg":
-            fake = random.choice(["\u03c0/4", "\u03c0/2", "\u03c0", "3\u03c0/2", "2\u03c0", "7\u03c0/6", "5\u03c0/3"])
+            fake = random.choice(["π/4", "π/2", "π", "3π/2", "2π", "7π/6", "5π/3"])
         elif q_type == "convert_rad":
             fake = str(random.choice([0, 30, 45, 60, 90, 120, 135, 150, 180, 270, 300, 360]))
         elif "find_angle" in q_type:
@@ -90,12 +90,13 @@ def generate_choices(correct, q_type):
     return random.sample(list(choices), 4)
 
 # --- Streamlit UI ---
-# Defer rerun if needed
+st.set_page_config(page_title="Unit Circle Mad Minute", layout="centered")
+st.title("⏱️ 1-Minute Unit Circle Challenge")
+
+# Rerun handler
 if st.session_state.get("trigger_rerun"):
     st.session_state.trigger_rerun = False
     st.experimental_rerun()
-st.set_page_config(page_title="Unit Circle Mad Minute", layout="centered")
-st.title("⏱️ 1-Minute Unit Circle Challenge")
 
 if "name" not in st.session_state:
     st.session_state.name = ""
@@ -136,37 +137,19 @@ elif "start_time" in st.session_state:
     else:
         st.markdown(f"<h2>🕒 Time left: {remaining} seconds</h2>", unsafe_allow_html=True)
 
-        question, correct_answer = st.session_state.questions[st.session_state.index]
-        q_type = (
-            "coord" if "coordinates" in question else
-            "convert_deg" if "°" in question else
-            "convert_rad" if "to degrees" in question else
-            "find_angle_sin" if "sin(θ)" in question else
-            "find_angle_cos" if "cos(θ)" in question else
-            "sin" if "sin" in question else
-            "cos"
-        )
-
+        question, correct_answer, q_type = st.session_state.questions[st.session_state.index]
         choices = generate_choices(correct_answer, q_type)
         st.markdown(f"<h3>Q{st.session_state.index + 1}: {question}</h3>", unsafe_allow_html=True)
 
-        choice_key = f"choice_{st.session_state.index}"
-
-        # Only reset radio if it's a new question
-        if st.session_state.get("answered") != st.session_state.index:
-            if choice_key in st.session_state:
-                del st.session_state[choice_key]
-
+        choice_key = "selected"
         selected = st.radio("Choose your answer:", choices, index=None, key=choice_key)
 
         if selected:
-            if st.session_state.get("answered") != st.session_state.index:
-                if selected == correct_answer:
-                    st.session_state.score += 1
             st.session_state.attempted += 1
-            st.session_state.answered = st.session_state.index
-            st.session_state.index += 1
+            if selected == correct_answer:
+                st.session_state.score += 1
 
+            st.session_state.index += 1
             if st.session_state.index >= len(st.session_state.questions):
                 st.session_state.questions += [generate_question() for _ in range(10)]
 
