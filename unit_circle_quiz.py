@@ -158,7 +158,7 @@ def handle_answer():
 
 st.radio(
     "Choose your answer:",
-    choices,
+    options=choices,
     index=None,
     key=f"q_{st.session_state.index}",
     on_change=handle_answer
