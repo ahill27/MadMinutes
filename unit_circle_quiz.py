@@ -164,4 +164,4 @@ elif "start_time" in st.session_state:
                 st.session_state.questions += [generate_question() for _ in range(10)]
 
             st.experimental_rerun()
-            return
+            st.stop()
