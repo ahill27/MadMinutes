@@ -97,10 +97,6 @@ def generate_choices(correct, q_type):
 st.set_page_config(page_title="Unit Circle Mad Minute", layout="centered")
 st.title("⏱️ 1-Minute Unit Circle Challenge")
 
-if st.session_state.get("trigger_rerun"):
-    st.session_state.trigger_rerun = False
-    st.experimental_rerun()
-
 if "name" not in st.session_state:
     st.session_state.name = ""
 
@@ -145,16 +141,15 @@ elif "start_time" in st.session_state:
         choices = generate_choices(correct_answer, q_type)
         st.markdown(f"<h3>Q{st.session_state.index + 1}: {question}</h3>", unsafe_allow_html=True)
 
-        selected = st.radio("Choose your answer:", choices, index=None, key=f"q_{st.session_state.index}")
-
-        if selected:
-            st.session_state.attempted += 1
-            if selected == correct_answer:
-                st.session_state.score += 1
-
-            st.session_state.index += 1
-            if st.session_state.index >= len(st.session_state.questions):
-                st.session_state.questions += [generate_question() for _ in range(10)]
-
-            st.session_state.trigger_rerun = True
-            st.stop()
+        selected = st.radio(
+            "Choose your answer:",
+            choices,
+            index=None,
+            key=f"q_{st.session_state.index}",
+            on_change=lambda: st.session_state.update({
+                'attempted': st.session_state.attempted + 1,
+                'score': st.session_state.score + 1 if st.session_state[f"q_{st.session_state.index}"] == correct_answer else st.session_state.score,
+                'index': st.session_state.index + 1,
+                'trigger_rerun': True
+            })
+        )
