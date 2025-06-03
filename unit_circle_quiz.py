@@ -164,8 +164,8 @@ elif "start_time" in st.session_state:
                 if selected == correct_answer:
                     st.session_state.score += 1
             st.session_state.attempted += 1
-            st.session_state.index += 1
             st.session_state.answered = st.session_state.index
+            st.session_state.index += 1
 
             if st.session_state.index >= len(st.session_state.questions):
                 st.session_state.questions += [generate_question() for _ in range(10)]
