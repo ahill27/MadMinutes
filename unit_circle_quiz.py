@@ -152,15 +152,15 @@ elif "start_time" in st.session_state:
 
         choice_key = f"choice_{st.session_state.index}"
 
-        # Clear old selection if showing a new question
-        if st.session_state.get("answered") != st.session_state.index:
-            if choice_key in st.session_state:
-                del st.session_state[choice_key]
+        # Always reset radio button for a new question
+        if choice_key in st.session_state:
+            del st.session_state[choice_key]
 
         selected = st.radio("Choose your answer:", choices, index=None, key=choice_key)
 
-        if selected and st.session_state.get("answered") != st.session_state.index:
-            if selected == correct_answer:
+        if selected:
+            if st.session_state.get("answered") != st.session_state.index:
+                if selected == correct_answer:
                 st.session_state.score += 1
             st.session_state.attempted += 1
             st.session_state.index += 1
