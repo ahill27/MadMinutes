@@ -110,7 +110,8 @@ def handle_answer():
         st.experimental_rerun()
 
 # --- Streamlit UI ---
-st.session_state.just_reran = False
+if "just_reran" not in st.session_state:
+    st.session_state.just_reran = False
 st.set_page_config(page_title="Unit Circle Mad Minute", layout="centered")
 st.title("⏱️ 1-Minute Unit Circle Challenge")
 
@@ -160,6 +161,7 @@ elif "start_time" in st.session_state:
         st.markdown(f"<h2>🕒 Time left: {remaining} seconds</h2>", unsafe_allow_html=True)
 
         question_data = st.session_state.questions[st.session_state.index]
+        st.session_state.just_reran = False
         st.session_state.current_question = question_data
         question, correct_answer, q_type = question_data
         choices = generate_choices(correct_answer, q_type)
@@ -174,6 +176,9 @@ elif "start_time" in st.session_state:
         )
 
 
+
+
+    
 
 
     
