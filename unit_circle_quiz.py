@@ -124,7 +124,12 @@ elif "start_time" in st.session_state:
 
         sheet = connect_sheet()
         if sheet:
-            prev_accuracy = get_last_accuracy(sheet, name)
+            try:
+                prev_accuracy = get_last_accuracy(sheet, name)
+            except Exception as e:
+                st.warning(f"Couldn't fetch previous score: {e}")
+                prev_accuracy = None
+
             improvement = round(((accuracy - prev_accuracy) / prev_accuracy) * 100, 2) if prev_accuracy else 0.0
             append_result(sheet, name, score, attempted, accuracy, improvement)
 
@@ -148,10 +153,10 @@ elif "start_time" in st.session_state:
             key=f"q_{st.session_state.index}"
         )
 
-        if selected is not None:
-            if st.button("Submit Answer"):
-                st.session_state.attempted += 1
-                if selected == correct_answer:
-                    st.session_state.score += 1
-                st.session_state.index += 1
-                st.experimental_rerun()
+        if selected:
+            st.session_state.attempted += 1
+            if selected == correct_answer:
+                st.session_state.score += 1
+            st.session_state.index += 1
+            st.experimental_rerun()
+
