@@ -94,17 +94,23 @@ def generate_choices(correct, q_type):
     return random.sample(list(choices), 4)
 
 def handle_answer():
+    if st.session_state.get("just_reran"):
+        return
+
     key = f"q_{st.session_state.index}"
     selected = st.session_state.get(key)
     _, correct, _ = st.session_state.get("current_question", ("", "", ""))
+
     if selected is not None:
         st.session_state.attempted += 1
         if selected == correct:
             st.session_state.score += 1
         st.session_state.index += 1
+        st.session_state.just_reran = True
         st.experimental_rerun()
 
 # --- Streamlit UI ---
+st.session_state.just_reran = False
 st.set_page_config(page_title="Unit Circle Mad Minute", layout="centered")
 st.title("⏱️ 1-Minute Unit Circle Challenge")
 
