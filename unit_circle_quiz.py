@@ -72,7 +72,7 @@ def generate_question():
     elif q_type == "find_angle_cos":
         return f"At which angle is cos(θ) = {cos_val}?", angle_rad
 
-# --- Multiple Choice Generator ---
+# --- Generate multiple choices ---
 def generate_choices(correct, q_type):
     choices = {correct}
     while len(choices) < 4:
@@ -134,21 +134,23 @@ elif "start_time" in st.session_state:
         question, correct_answer = st.session_state.questions[st.session_state.index]
         q_type = (
             "coord" if "coordinates" in question else
-            "convert_deg" if "Convert" in question and "°" in question else
-            "convert_rad" if "Convert" in question and "to degrees" in question else
-            "find_angle_sin" if "sin(θ) =" in question else
-            "find_angle_cos" if "cos(θ) =" in question else
+            "convert_deg" if "°" in question else
+            "convert_rad" if "to degrees" in question else
+            "find_angle_sin" if "sin(θ)" in question else
+            "find_angle_cos" if "cos(θ)" in question else
             "sin" if "sin" in question else
             "cos"
         )
 
         choices = generate_choices(correct_answer, q_type)
         st.markdown(f"<h3>Q{st.session_state.index + 1}: {question}</h3>", unsafe_allow_html=True)
-        selected = st.radio("Choose your answer:", choices, key=f"q{st.session_state.index}")
+
+        selected = st.radio("Choose your answer:", choices, index=0, key=f"q{st.session_state.index}")
 
         if st.button("Submit Answer"):
             if selected == correct_answer:
                 st.session_state.score += 1
+            # Always go to next question regardless of correctness
             st.session_state.index += 1
             st.session_state.attempted += 1
             if st.session_state.index >= len(st.session_state.questions):
