@@ -145,13 +145,18 @@ elif "start_time" in st.session_state:
         choices = generate_choices(correct_answer, q_type)
         st.markdown(f"<h3>Q{st.session_state.index + 1}: {question}</h3>", unsafe_allow_html=True)
 
-        selected = st.radio("Choose your answer:", choices, index=0, key=f"q{st.session_state.index}")
+        choice_key = f"choice_{st.session_state.index}"
+        selected = st.radio("Choose your answer:", choices, key=choice_key, index=None)
 
-        if st.button("Submit Answer"):
+        if selected:
             if selected == correct_answer:
                 st.session_state.score += 1
-            # Always go to next question regardless of correctness
             st.session_state.index += 1
             st.session_state.attempted += 1
+
+            st.session_state.pop(choice_key, None)
+
             if st.session_state.index >= len(st.session_state.questions):
                 st.session_state.questions += [generate_question() for _ in range(10)]
+
+            st.experimental_rerun()
